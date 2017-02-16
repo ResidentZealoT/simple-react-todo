@@ -9,6 +9,14 @@ import Task from './Task.jsx';
 // App component - represents the whole app
 class App extends Component {
 
+// Add state property to the App
+  constructor(props){
+    super(props);
+
+    this.state = {
+      hideCompleted: false,
+    };
+  }
 // handle text inputs to the form
   handleSubmit(event){
     event.preventDefault();
@@ -24,8 +32,19 @@ class App extends Component {
     ReactDOM.findDOMNode(this.refs.textInput).value = '';
   }
 
+  // Handle HideCompleted event
+  toggleHideCompleted() {
+    this.setState({
+      hideCompleted: !this.state.hideCompleted,
+    });
+  }
+
   renderTasks() {
-    return this.props.tasks.map((task) => (
+    let filteredTasks = this.props.tasks;
+    if (this.state.hideCompleted) {
+      filteredTasks = filteredTasks.filter(task => !task.checked);
+    }
+    return filteredTasks.map((task) => (
       <Task key={task._id} task={task} />
     ));
   }
@@ -36,6 +55,17 @@ class App extends Component {
 
         <header>
           <h1>Todo List</h1>
+          {/* tick box to view completed */}
+          <label className="hide-completed">
+            <input
+              type="checkbox"
+              readOnly
+              checked={this.state.hideCompleted}
+              onClick={this.toggleHideCompleted.bind(this)}
+            />
+          Hide completed Tasks
+          </label>
+
           {/* form allows user to input tasks to database */}
             <form className="new-task" onSubmit={this.handleSubmit.bind(this)} >
               <input
