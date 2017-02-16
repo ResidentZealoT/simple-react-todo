@@ -1,10 +1,13 @@
 import React, { Component, PropTypes } from 'react';
 import ReactDOM from 'react-dom';
+import { Meteor } from 'meteor/meteor';
 import { createContainer } from 'meteor/react-meteor-data';
 
 import { Tasks } from '../api/tasks.js';
 
+// import components to be used
 import Task from './Task.jsx';
+import AccountsUIWrapper from './AccountsUIWrapper.jsx'
 
 // App component - represents the whole app
 class App extends Component {
@@ -23,10 +26,14 @@ class App extends Component {
     // find the text field using the react ref
     const text = ReactDOM.findDOMNode(this.refs.textInput).value.trim();
 
-    Tasks.insert({
-      text,
-      createdAt: new Date(), //adds the current time
-    });
+    Tasks.insert(
+      {
+        text,
+        createdAt: new Date(), //adds the current time
+        owner: Meteor.userId(),
+        username: Meteor.user().username,
+      }
+    );
 
     //clear the form
     ReactDOM.findDOMNode(this.refs.textInput).value = '';
@@ -54,7 +61,7 @@ class App extends Component {
       <div className="container">
 
         <header>
-          <h1>Todo List</h1>
+          <h1>Todo List ({this.props.incompleteCount})</h1>
           {/* tick box to view completed */}
           <label className="hide-completed">
             <input
@@ -66,14 +73,21 @@ class App extends Component {
           Hide completed Tasks
           </label>
 
+          {/* This is a login component */}
+          <AccountsUIWrapper />
+
+
+
           {/* form allows user to input tasks to database */}
+          { this.props.currentUser ?
             <form className="new-task" onSubmit={this.handleSubmit.bind(this)} >
               <input
                 type="text"
                 ref="textInput"
                 placeholder="Type to add new tasks"
               />
-            </form>
+            </form> : ''
+          }
         </header>
 
         <ul>
@@ -85,12 +99,19 @@ class App extends Component {
   }
 }
 
+// defines the type of each prop, ie Tasks are an array and count is a number
 App.propTypes = {
   tasks: PropTypes.array.isRequired,
+  incompleteCount: PropTypes.number.isRequired,
+  currentUser: PropTypes.object,
 };
 
+// defines what is created in each container, ie tasks fetch an array tasks in reverse order
+// incompletedCount counts the number of tasks remaining
 export default createContainer(() => {
   return {
     tasks: Tasks.find({}, { sort: { createdAt: -1 } }).fetch(),
+    incompleteCount: Tasks.find({ checked: { $ne: true } }).count(),
+    currentUser: Meteor.user(),
   };
 }, App);
