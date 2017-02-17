@@ -4,6 +4,19 @@ import { check } from 'meteor/check';
 
 export const Tasks = new Mongo.Collection('tasks');
 
+// make sure this code is only run from the server
+if (Meteor.isServer)
+{
+  Meteor.publish('tasks', function tasksPublication() {
+    return Tasks.find({
+      $or: [
+        { private: { $ne: true } },
+        { owner: this.userId },
+      ],
+    });
+  });
+}
+
 Meteor.methods(
   {
 // describes database methods that can be called from the react components
@@ -38,6 +51,20 @@ Meteor.methods(
       check(taskId, String);
       check(setChecked, Boolean);
       Tasks.update(taskId, { $set: { checked: setChecked } });
+    },
+
+    'tasks.setPrivate'(taskId, setToPrivate) {
+      check(taskId, String);
+      check(setToPrivate, Boolean);
+
+      const task = Tasks.findOne(taskId);
+
+      // Make sure only the task owner can make a task private
+      if (task.owner !== this.userId) {
+        throw new Meteor.Error('not-authorized');
+      }
+
+      Tasks.update(taskId, { $set: { private: setToPrivate } });
     },
   }
 );
